@@ -8,7 +8,7 @@
 library(arimo)
 
 # Connect to server
-arimo.connect('dev.adatao.com', username='guest', password='welcome1')
+arimo.connect('dev.adatao.com', username='guest', password='guest')
 
 # Create pipelines
 firstPipeline <- arimo.createPipeline()

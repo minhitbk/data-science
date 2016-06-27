@@ -1,7 +1,7 @@
 library(arimo)
 
 # Connect to arimo server
-arimo.connect('52.91.148.33', 16000, 'minhtran@arimo.com', 'arimoiscool')
+arimo.connect('172.28.10.xxx', 16000, 'minhtran@arimo.com', 'abcde')
 
 # Load the original data set
 hddDdf <- arimo.getDDF('ddf://adatao/hdd')
