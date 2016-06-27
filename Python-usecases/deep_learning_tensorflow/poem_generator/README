@@ -1,0 +1,5 @@
+#train
+python model.py
+
+#generate poems (generate 1000 sentences by default)
+python sample.py

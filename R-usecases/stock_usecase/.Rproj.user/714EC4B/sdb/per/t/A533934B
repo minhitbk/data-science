@@ -1,0 +1,17 @@
+{
+    "contents" : "\nlibrary(adatao)\n\nsetwd('.')\n\nset.seed(10)\nsource(\"modelWithCVGLM.R\")\n\nadatao.connect(\"52.21.61.86\", 16000, \"bhan\", \"adademo!@#\")\n\ntrainDdf_1 <- adatao.getDDF(\"ddf://adatao/trainDdf_1\")\ntrainDdf_2 <- adatao.sql2ddf(\"select * from {1} where r_reallocated_sectors_count + r_current_pending_sector_count > 12\", ddfList = list(trainDdf_1))\n\ntrainDdf <- adatao.sql2ddf(\"select * from joinYesterdayTodayTomorrow where r_datetime < '2014-09-01'\")\ntestDdf <- adatao.sql2ddf(\"select * from joinYesterdayTodayTomorrow where r_datetime >= '2014-09-01'\")\nfinalTrainDdf <- adatao.rbind(trainDdf, trainDdf_2)\n\ntrainFormula <- formula(\"r_r_failure ~ r_temperature + r_reallocated_sectors_count + r_current_pending_sector_count\")\n\n#model <- modelWithCVGLM(finalTrainDdf, trainFormula)\n\nmodel <- adatao.glm.gd(formula = trainFormula, \n                           data = finalTrainDdf, \n                           learningRate = 0.001, \n                           numIterations = 85,\n                           regularized = \"ridge\", \n                           lambda = 0.02789616, \n                           initialWeights = NULL,\n                           ref.levels = NULL)    \n\ntest_result <- adatao.predict(model, testDdf)\n\n#hiveStr <- paste0(\"yPredictLabel = if(yPredict > \", attr(model, 'glm.threshold'), \", 1, 0)\")\nhiveStr <- paste0(\"yPredictLabel = if(yPredict > \", 0.9, \", 1, 0)\")\ntest_result_1 <- eval(call(\"adatao.transform\", test_result, 'Hive', hiveStr))\n\nprint(adatao.xtabs(~ ytrue + yPredictLabel, test_result_1))\n\n\n# ddfData <- adatao.sql2ddf(\"select temperature, reallocated_sectors_count, read_error_rate, current_pending_sector_count, power_on_hours, age, r_temperature, r_reallocated_sectors_count, r_read_error_rate, r_current_pending_sector_count, r_power_on_hours, r_age from joinYesterdayTodayTomorrow\")\n# cols <- c(\"temperature\", \"reallocated_sectors_count\", \"read_error_rate\", \"current_pending_sector_count\", \"power_on_hours\", \"age\", \"r_temperature\", \"r_reallocated_sectors_count\", \"r_read_error_rate\", \"r_current_pending_sector_count\", \"r_power_on_hours\", \"r_age\")\n# corr <- matrix( , nrow = 12, ncol = 12)\n# for (i in (1:12)) \n#   for (j in (1:12)) {\n#     corr[i, j] <- adatao.cor(ddfData, cols[i], cols[j])\n#   }\n",
+    "created" : 1457084874850.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "4150385872",
+    "id" : "A533934B",
+    "lastKnownWriteTime" : 1457347658,
+    "path" : "~/adatao/projects/khangpham/forecast_harddrive/src/for_testing1.R",
+    "project_path" : null,
+    "properties" : {
+    },
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "type" : "r_source"
+}

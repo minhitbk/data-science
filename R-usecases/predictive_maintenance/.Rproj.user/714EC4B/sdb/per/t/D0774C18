@@ -1,0 +1,17 @@
+{
+    "contents" : "\n\n\n\nlibrary(caret)\nlibrary(pROC)\nlibrary(rpart)\nlibrary(performanceEstimation)\nlibrary(randomForest)\nlibrary(ROCR)\nlibrary(stats)\n\nlibrary(xgboost)\n\n\nrm(list=ls())\n\npath = \"F:\\\\Consultancy Project\\\\Kohls\\\\kohls data\\\\Data_Apr5\\\\\"\nsetwd(path)\nload('FinalDailyFeatures.Rdata')\nFullDataset<-modifyList(featureSet, lapply(featureSet,as.character))\nIgnoreFeatures <- c('AvgTimeBetweenPurchases','CustomerID')\nFullDataset[,IgnoreFeatures] <- list(NULL)\ncombined_rb_predictions <- data.frame()\ncombined_rb_prob <- data.frame()\n\nFullDataset <- as.data.frame(lapply(FullDataset,as.numeric))\n\n# create indices for 10 folds\nset.seed(1234)\nDistribution.table <- prop.table(table(FullDataset$Labels))\n\nfolds <- createFolds(FullDataset$Labels, k = 10, list = TRUE, returnTrain = FALSE)\n\niter <- 1\n\nFullDataset$Labels = factor(FullDataset$Labels)\n\nfor (fold in folds) {\n    \n    # display iteration number\n    print (iter)\n    iter <- iter + 1\n    training <- FullDataset[-fold, ]\n    testing <- FullDataset[fold, ]\n    newData <- smote(Labels ~ ., training, perc.over = 1,perc.under=2)\n    \n    X= newData[,(1:ncol(newData)-1)]\n    y= newData$Label\n    #GLMModel <-  train(Labels ~ ., data= newData,method = \"xgbTree\")\n    GLMModel <-  train(Labels ~ ., data= newData,method = \"rf\")\n    \n    \n    glmPreds <- predict(GLMModel, testing)\n    print(table(glmPreds))\n    print(table(testing$Labels))\n    combined_rb_predictions <- rbind(combined_rb_predictions, data.frame(pred=as.factor(glmPreds), \n                                                                         obs=as.factor(testing$Labels), \n                                                                         fold = fold))\n    \n}\nconf = confusionMatrix(combined_rb_predictions$pred, combined_rb_predictions$obs,positive = \"1\")\nconf \n\n\n\na<- roc(as.numeric(combined_rb_predictions$pred), as.numeric(combined_rb_predictions$obs))\npr= prediction(as.numeric(combined_rb_predictions$pred) ,as.numeric(combined_rb_predictions$obs))\nperf <- performance(pr, measure = \"tpr\", x.measure = \"fpr\")\nauc <- performance(pr, measure = \"auc\")\nauc <- auc@y.values[[1]]\nauc\n\n\n\nplot(perf,col=\"red\", main=\"SMOTE\")\n\n# calculating AUC\n#auc <- unlist(slot(auc, \"y.values\"))\n# adding min and max ROC AUC to the center of the plot\nminauc<-min(round(auc, digits = 2))\nminauct <- paste(c(\"AUC  = \"),minauc,sep=\"\")\nlegend(0.6,0.4,c(minauct,\"\\n\"),border=\"white\",cex=1,box.col = \"white\")\nabline(a=0, b= 1)",
+    "created" : 1461915407939.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "317967547",
+    "id" : "D0774C18",
+    "lastKnownWriteTime" : 1461235398,
+    "path" : "~/tmp/Report21Apr2016/xgBoostSampleCode.R",
+    "project_path" : null,
+    "properties" : {
+    },
+    "relative_order" : 5,
+    "source_on_save" : false,
+    "type" : "r_source"
+}
