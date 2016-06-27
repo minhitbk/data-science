@@ -25,11 +25,10 @@ joinYesterdayToday <- arimo.join(addDayToDdfData, addDayToDdfData,
                                  by.y=c('serial', 'datetime0'), 
                                  type='inner')
 
-colnames(addDayToDdfData)[c(1:length(colnames(addDayToDdfData)))] <- 
-    paste('r', colnames(addDayToDdfData), sep='_')
+colnames(addDayToDdfData)[c(1:length(colnames(addDayToDdfData)))] <- paste('r', 
+                                            colnames(addDayToDdfData), sep='_')
 
-finalDdf <- arimo.join(joinYesterdayToday, 
-                                         addDayToDdfData, 
+finalDdf <- arimo.join(joinYesterdayToday, addDayToDdfData, 
                                          by.x=c('serial', 'datetime1'), 
                                          by.y=c('r_serial', 'r_datetime_1'), 
                                          type='inner')
@@ -41,7 +40,8 @@ trainDdf <- arimo.sql2ddf("select * from finalDdf where r_datetime < '2014-09-01
 testDdf <- arimo.sql2ddf("select * from finalDdf where r_datetime >= '2014-09-01'")
 
 upSampleTrainDdf <- trainDdf[trainDdf$r_r_failure == 1, ]
-upSampleTrainDdf <- arimo.sql2ddf("select * from {1} where r_reallocate + r_pending > 12", ddfList = list(upSampleTrainDdf))
+upSampleTrainDdf <- arimo.sql2ddf("select * from {1} where r_reallocate + r_pending > 12", 
+                                  ddfList = list(upSampleTrainDdf))
 upSampleTrainDdf <- arimo.sample2ddf(upSampleTrainDdf, 40000, replace=TRUE)
 
 finalTrainDdf <- arimo.rbind(trainDdf, upSampleTrainDdf)
@@ -61,27 +61,9 @@ head(testResult[testResult$ytrue == 1, ], 20)
 
 # This command is for printing the confusion matrix
 hiveStr <- paste0("if(yPredict > ", 0.999, ", 1, 0)")
-finalTestResult <- eval(call("arimo.transform", testResult, 'SQL', yPredictLabel = hiveStr))
+finalTestResult <- eval(call("arimo.transform", testResult, 'SQL', 
+                             yPredictLabel = hiveStr))
 print(arimo.xtabs(~ ytrue + yPredictLabel, finalTestResult))
-
-
-
-#joinYesterdayToday <- arimo.join(addDayToDdfData, addDayToDdfData,
-#                                 by.x=c('serial', 'datetime1'), 
-#                                 by.y=c('serial', 'datetime0'), 
-#                                 type='inner')
-
-#colnames(addDayToDdfData)[c(1:length(colnames(addDayToDdfData)))] <- 
-#    paste('r', colnames(addDayToDdfData), sep='_')
-
-#finalDdf <- arimo.join(joinYesterdayToday, 
-#                                         addDayToDdfData, 
-#                                         by.x=c('serial', 'datetime1'), 
-#                                         by.y=c('r_serial', 'r_datetime_1'), 
-#                                         type='inner')
-
-# Change the name in case of re-running the preprocessing process
-#arimo.setDDFName(finalDdf, 'finalDdf')
 
 # Get the finalDdf that was already pre-processed
 finalDdf <- arimo.getDDF('ddf://adatao/finalDdf')
@@ -91,7 +73,8 @@ trainDdf <- arimo.sql2ddf("select * from finalDdf where r_datetime < '2014-09-01
 testDdf <- arimo.sql2ddf("select * from finalDdf where r_datetime >= '2014-09-01'")
 
 upSampleTrainDdf <- trainDdf[trainDdf$r_r_failure == 1, ]
-upSampleTrainDdf <- arimo.sql2ddf("select * from {1} where r_reallocate + r_pending > 12", ddfList = list(upSampleTrainDdf))
+upSampleTrainDdf <- arimo.sql2ddf("select * from {1} where r_reallocate + r_pending > 12", 
+                                  ddfList = list(upSampleTrainDdf))
 upSampleTrainDdf <- arimo.sample2ddf(upSampleTrainDdf, 40000, replace=TRUE)
 
 finalTrainDdf <- arimo.rbind(trainDdf, upSampleTrainDdf)
@@ -111,6 +94,7 @@ print(head(testResult[testResult$ytrue == 1, ], 20))
 
 # This command is for printing the confusion matrix
 hiveStr <- paste0("if(yPredict > ", 0.99, ", 1, 0)")
-finalTestResult <- eval(call("arimo.transform", testResult, 'SQL', yPredictLabel = hiveStr))
+finalTestResult <- eval(call("arimo.transform", testResult, 'SQL', 
+                             yPredictLabel = hiveStr))
 print(arimo.xtabs(~ ytrue + yPredictLabel, finalTestResult))
 
