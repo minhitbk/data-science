@@ -1,0 +1,83 @@
+#!/usr/bin/env python
+"""
+@author: Tran Ngoc Minh
+"""
+
+from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+import subprocess, os
+
+subprocess.Popen("ln -s /lib/terminfo/d/dumb /usr/share/terminfo/d/dumb", shell=True, stdout=subprocess.PIPE).wait()
+
+subprocess.Popen("export TERM=xterm", shell=True, stdout=subprocess.PIPE).wait()
+os.environ["TERM"] = "xterm"
+
+cmd = "lsof -i:9292 | grep 'python' | awk '{ print $(NF-8) }'"
+outp = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).communicate()[0].strip()
+
+if not (outp in [None, ""]):
+
+	pid = int(outp)
+	subprocess.Popen("kill -9 %d" % pid, shell=True, stdout=subprocess.PIPE).wait()
+
+class MyHandler(BaseHTTPRequestHandler):
+
+	def _process_request(self):
+
+		try:
+			
+			"""
+			get cpu utilization
+			"""
+			cmd = """top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\\1/" | awk '{print $1}'"""
+			cpu_util = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).communicate()[0].strip() 
+			output = {"CPU" : cpu_util}
+			
+			"""
+			get mem utilization
+			"""
+			cmd = """top -bn1 | grep "Mem:" | sed "s/.*, *\([0-9.]*\)%* used,*/\\1/" | awk '{print $1}'"""
+			mem_used = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).communicate()[0].strip() 
+			
+			"""
+			get mem utilization
+			"""
+			cmd = """top -bn 1 | grep Mem: | awk '{ print $(NF-7) }'"""
+			mem_total = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE).communicate()[0].strip()
+			
+			output["RAM"] = (100 * int(mem_used)) / int(mem_total)
+
+			self.send_response(200)
+			self.send_header("Content-type", "text/html")
+			self.end_headers()
+			self.wfile.write(output)                
+
+		except:
+
+			self.send_error(404,"Error in executing top")
+
+	def do_GET(self):
+
+		self._process_request()
+		
+	def do_POST(self):
+
+		self._process_request()
+
+def main():
+
+	try:
+
+		server = HTTPServer(("", 9292), MyHandler)
+		
+		print "Started httpserver... port 9292"
+		
+		server.serve_forever()
+		
+	except KeyboardInterrupt:
+
+		print "^C received, shutting down server"
+		server.socket.close()
+
+if __name__ == '__main__':
+	main()
+

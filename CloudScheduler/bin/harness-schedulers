@@ -1,0 +1,242 @@
+#!/usr/bin/env python
+"""
+@author: Tran Ngoc Minh
+"""
+
+import sys, thread, os, signal
+
+try:
+
+    from scheduler.manager.service import *
+
+except:
+
+    """
+    We assume that the package is not installed in the system
+    """
+    home = os.path.expanduser("~")
+    if not os.path.exists(os.path.join(home, ".harness-crs")):
+        os.mkdir(os.path.join(home, ".harness-crs"))
+    
+    os.popen('cp %s %s' % (os.path.abspath(os.path.join(os.path.dirname( __file__ ), \
+                    "../conf/scheduler.conf")), os.path.join(home, ".harness-crs")))
+    
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname( __file__ ), "..")))
+
+    from scheduler.manager.service import *
+    
+home = os.path.expanduser("~")
+
+"""
+Starter script for all scheduler services,
+the scheduling manager is run without gunicorn by default
+"""
+
+import logging, json, os, sys
+from scheduler.common.loaders import logHandler, config
+from scheduler.worker.service import app as internalApp
+
+logger = logging.getLogger()
+logger.addHandler(logHandler)
+
+piddir = os.path.join(home, ".harness-crs")
+
+def run_manager(gunicorn, hostname, port):
+    
+    if not gunicorn:
+
+        from scheduler.manager.service import app as schedulingApp        
+        schedulingApp.run(host=hostname,port=port,debug=False)
+
+    else:        
+
+        from scheduler.common.gunicorn_app import SchedulingManager
+    
+        options = {"bind":"%s:%s" %(hostname,port),
+                  "worker_class":"eventlet",
+                  "workers":10,
+                  "worker_connections":500,
+                  "timeout":sys.maxint}
+        
+        SchedulingManager(options).run()    
+
+def start_load_balancer(backgr = False, gunicorn = False):
+
+    """
+    Start the scheduling manager
+    """
+    hostname = config.get("Scheduler","HOSTNAME")
+    port = int(config.get("Scheduler","PORT"))  
+
+    if backgr:
+
+        print "Starting load balancer in the background on port ", port
+
+        pid = os.fork()
+        if pid == 0:
+
+            open(os.path.join(piddir, "crs.pid"),'w').write(str(os.getpid()))
+            run_manager(gunicorn, hostname, port)
+
+    else:
+
+        print "Starting load balancer on port ", port
+
+        def handler(signum, frame):
+
+            print "signal caught"
+
+            pidfiles = [f for f in os.listdir(os.path.join(piddir)) if f.endswith(".pid")]
+
+            for f in pidfiles:
+
+                print "killing process %s " % f
+
+                try:
+ 
+                    os.kill(int(open(os.path.join(piddir, f),"r").read()), signal.SIGTERM)
+ 
+                except:
+
+                    pass
+        
+        """
+        Set the signal handler
+        """
+        signal.signal(signal.SIGTERM, handler)
+    
+        run_manager(gunicorn, hostname, port)
+  
+def start_scheduler():    
+
+    """
+    Start internal schedulers
+    """
+    hostnames = json.loads(config.get("InternalSchedulers","HOSTNAMES"))
+    ports = json.loads(config.get("InternalSchedulers","PORTS"))
+    policies = json.loads(config.get("InternalSchedulers",
+                                     "SCHEDULING_POLICIES"))
+    
+    for index in range(len(ports)):
+
+        print "Starting scheduler %d on port %d" % (index, int(ports[index]))
+
+        pid = os.fork()
+        if pid == 0:
+
+            open(os.path.join(piddir, "sched%d.pid" % index),'w').write(str(os.getpid()))
+            internalApp.config["POLICY"] = policies[index]
+            internalApp.run(host=hostnames[index],port=ports[index],
+                            debug=False)
+            sys.exit(0)
+           
+def print_help():
+
+    print """
+    program start/stop [-m]/[-i]/[all] [-g] [-b]  
+    
+    Options:
+    
+    all: starts/stops load balancer and schedulers [default]
+    -m : start/stop the load balancer
+    -i : start/stop internal schedulers
+    
+    -g : with gunicorn
+    -b : run in background
+    """
+
+if __name__ == "__main__":
+
+    try:
+
+        action = sys.argv[1]
+
+    except:
+
+        print_help()
+        sys.exit(1)
+        
+    try:
+
+        target = sys.argv[2]
+
+    except:
+
+        target = "all"
+              
+    try:
+
+        guni = sys.argv[3]
+
+    except:
+
+        guni = None
+        
+    if action.lower() == "start":
+
+        print "Starting services"
+
+        if target == "-i":
+
+            start_scheduler()
+
+        elif target == "-m":
+
+            start_load_balancer(True if "-b" in sys.argv else False, True if "-g" in sys.argv else False)            
+
+        else:
+
+            start_scheduler()
+            start_load_balancer(True if "-b" in sys.argv else False)
+            
+    elif action.lower() == "stop":
+
+        print "Stop services"
+
+        if target == "-i":
+            
+            pidfiles = [f for f in os.listdir(os.path.join(piddir)) if f.endswith(".pid") and f.startswith("sched")]
+            for f in pidfiles:
+
+                print "killing process %s " % f
+ 
+                try:
+
+                    os.kill(int(open(os.path.join(piddir, f),"r").read()), signal.SIGTERM)
+
+                except:
+
+                    pass
+
+        elif target == "-m":
+
+            try:
+
+                os.kill(int(open(os.path.join(piddir, "crs.pid"),"r").read()), signal.SIGTERM)
+
+            except:
+
+                pass           
+
+        else:
+
+            pidfiles = [f for f in os.listdir(os.path.join(piddir)) if f.endswith(".pid")]
+
+            for f in pidfiles:
+
+                print "killing process %s " % f
+
+                try:
+
+                    os.kill(int(open(os.path.join(piddir, f),"r").read()), signal.SIGTERM)
+
+                except:
+                    
+                    pass
+        
+        print "Done!"
+        
+        
+        
+        
+        

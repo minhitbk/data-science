@@ -1,0 +1,50 @@
+#!/bin/sh
+
+CONF_DIR=~/.g5kiaas
+PID_FILE=~/.g5kiaas/g5kiaas.pid
+LOG_FILE=~/.g5kiaas/g5kiaas.log
+
+#
+# Function that starts the daemon/service
+#
+start()
+{
+    #Start the g5k-iaas daemon
+	server-g5kiaas 5557 > $LOG_FILE 2>&1 &
+
+	PID=$!
+	echo $PID > $PID_FILE
+}
+
+#
+# Function that stops the daemon/service
+#
+
+stop()
+{
+    if [ ! -f $PID_FILE ]; then
+        echo "No G5kIaaS server running"
+        exit 1
+    fi
+
+    # Kill the server-g5kiaas daemon
+    kill -9 `cat $PID_FILE`
+
+    # Remove pid file
+    rm -f $PID_FILE 
+}
+
+
+case "$1" in
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  *)
+    echo "Usage: g5k-iaas {start|stop}" >&2
+    exit 0
+    ;;
+esac
+
