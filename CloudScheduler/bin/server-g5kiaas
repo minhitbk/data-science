@@ -2,26 +2,19 @@
 """
 @author: Tran Ngoc Minh
 """
-
 import sys
+
 from scheduler.g5kiaas.service import *
 
 def print_help():
-
     print """
-
     program [port]
-        
     """
 
-if __name__ == "__main__":
-    
+if __name__ == "__main__":    
     try:
-
         port = int(sys.argv[1])
-
     except:
-
         print_help()
         sys.exit(1)
         

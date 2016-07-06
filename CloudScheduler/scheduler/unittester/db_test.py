@@ -1,9 +1,10 @@
 """
 @author: Tran Ngoc Minh
 """
-
 import unittest
-from scheduler.database.db_class import session, StorageType, RouterType, MachineType
+
+from scheduler.database.db_class import session, StorageType, 
+from scheduler.database.db_class import RouterType, MachineType
 from base_class import CommonUnitTester 
 
 TEST_DB_DATA = {
@@ -37,9 +38,7 @@ TEST_DB_DATA = {
                 }
 
 class DatabaseUnitTester(CommonUnitTester):
-    
-    def testStorageType(self,data=TEST_DB_DATA["storage"]):
-        
+    def testStorageType(self, data=TEST_DB_DATA["storage"]):
         storageType = StorageType(data["typeID"],
                                   data["capacity"],
                                   data["ranbw"],
@@ -50,12 +49,11 @@ class DatabaseUnitTester(CommonUnitTester):
 
         dbType = session.query(StorageType).get("STORAGE")
 
-        self.assertEqual(dbType.capacity,data["capacity"])
-        self.assertEqual(dbType.ranbw,data["ranbw"])
-        self.assertEqual(dbType.seqbw,data["seqbw"])
+        self.assertEqual(dbType.capacity, data["capacity"])
+        self.assertEqual(dbType.ranbw, data["ranbw"])
+        self.assertEqual(dbType.seqbw, data["seqbw"])
 
-    def testMachineType(self,data=TEST_DB_DATA["machine"]):
-        
+    def testMachineType(self, data=TEST_DB_DATA["machine"]):        
         machineType = MachineType(data["typeID"],
                                   data["numcpu"],
                                   data["numcore"],
@@ -84,8 +82,7 @@ class DatabaseUnitTester(CommonUnitTester):
         self.assertEqual(dbType.typegpu,data["typegpu"])
         self.assertEqual(dbType.typefpga,data["typefpga"])                
         
-    def testRouterType(self,data=TEST_DB_DATA["router"]):
-        
+    def testRouterType(self,data=TEST_DB_DATA["router"]):        
         routerType = RouterType(data["typeID"],
                                 data["inbw"],
                                 data["outbw"],
@@ -107,7 +104,6 @@ class DatabaseUnitTester(CommonUnitTester):
         self.assertEqual(dbType.version,data["version"])          
                                              
 if __name__ == "__main__":
-    
     suite = unittest.TestSuite()
     suite.addTest(DatabaseUnitTester("testRouterType"))
     unittest.TextTestRunner().run(suite)

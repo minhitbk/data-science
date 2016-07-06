@@ -5,15 +5,16 @@
 """
 This module implements a faked IaaS API
 """
-
 from flask import Flask, json, request
 from scheduler.common.loaders import logHandler, config, method
 import cloud_infra, uuid
 from random import randrange
+
 from scheduler.database.db_class import StorageType, StorageResource
 from scheduler.database.db_class import RouterType, RouterResource
 from scheduler.database.db_class import MachineType, MachineResource
 from scheduler.database.db_class import session, Base, dbEngine
+
 
 """
 The faked api web service
@@ -42,7 +43,6 @@ replaced soon, just created for demo
 """
 @app.before_first_request
 def beforeFirstRequest():
-
     session.add(MachineType("MACHINE_TYPE_1",
                                cloud_infra.MACHINE_TYPE_1["numcpu"],
                                cloud_infra.MACHINE_TYPE_1["numcore"],
@@ -132,31 +132,23 @@ def beforeFirstRequest():
     for i in range(cloud_infra.STORAGE_TYPE_2["quantity"]):
         session.add(StorageResource("/dc2/rack1/storage%s/storage:" %i,
                                           "STORAGE_TYPE_2"))
-  
     session.commit()
     
 @app.before_request
 def beforeRequest():
-    
     if request.headers["Content-Type"] != "application/json":
-    
         app.logger.error("Unsupported media type, use application/json")
-
         return "Unsupported media type, use application/json\n" 
 
-@app.route("/getStaticNodeInfo",methods=[method])
+@app.route("/getStaticNodeInfo", methods=[method])
 def getStaticNodeInfo():
-
     nodeID = request.json["nodeID"]
     nodeType = nodeID.split(":")[0].split("/")[-1]
         
     if nodeType == "machine":
-        
         try:
             typeID = session.query(MachineResource).get(nodeID).typeID
-            
             nodeInfo = session.query(MachineType).get(typeID)
-            
             result = {"nodeID":nodeID,
                       "numcpu":nodeInfo.numcpu,
                       "numcore":nodeInfo.numcore,
@@ -170,18 +162,12 @@ def getStaticNodeInfo():
                       "disk":nodeInfo.disk}
         
         except AttributeError:
-            
             app.logger.error("Machine %s not found" %nodeID)
-            
             result = None
-            
     elif nodeType == "router":
-
         try:
             typeID = session.query(RouterResource).get(nodeID).typeID
-        
             nodeInfo = session.query(RouterType).get(typeID)
-        
             result = {"nodeID":nodeID,
                       "inbw":nodeInfo.inbw,
                       "outbw":nodeInfo.outbw,
@@ -189,122 +175,78 @@ def getStaticNodeInfo():
                       "capacity":nodeInfo.capacity,
                       "connector":nodeInfo.connector,
                       "version":nodeInfo.version}
-        except AttributeError:
-            
+        except AttributeError:            
             app.logger.error("Router %s not found" %nodeID)
-            
             result = None
-                        
     elif nodeType == "storage":
-
         try:
             typeID = session.query(StorageResource).get(nodeID).typeID
-            
             nodeInfo = session.query(StorageType).get(typeID)
-            
             result = {"nodeID":nodeID,
                       "capacity":nodeInfo.capacity,
                       "ranbw":nodeInfo.ranbw,
                       "seqbw":nodeInfo.seqbw}
-        
         except AttributeError:
-            
             app.logger.error("Storage %s not found" %nodeID)
-            
             result = None            
-    
     else:
-        
         result = None 
     
-    result = json.dumps({"result":result})
-            
+    result = json.dumps({"result":result})   
     return result
  
-@app.route("/getDynamicNodeInfo",methods=[method])
+@app.route("/getDynamicNodeInfo", methods=[method])
 def getDynamicNodeInfo():
-
     nodeID = request.json["nodeID"]
     nodeType = nodeID.split(":")[0].split("/")[-1]
-        
-    if nodeType == "machine":
-        
+    
+    if nodeType == "machine":    
         try:
-            
-            status = session.query(MachineResource).get(nodeID).status
-                   
+            status = session.query(MachineResource).get(nodeID).status       
             result = {"nodeID":nodeID, "status":status}
-            
         except AttributeError:
-            
             app.logger.error("Machine %s not found" %nodeID)
-            
             result = None
-        
     elif nodeType == "router":
-        
         try:
-            
-            status = session.query(RouterResource).get(nodeID).status
-                   
+            status = session.query(RouterResource).get(nodeID).status       
             result = {"nodeID":nodeID, "status":status}
-            
         except AttributeError:
-            
             app.logger.error("Router %s not found" %nodeID)
-            
             result = None
-        
     elif nodeType == "storage":
-
         try:
-            
-            status = session.query(StorageResource).get(nodeID).status
-                   
+            status = session.query(StorageResource).get(nodeID).status       
             result = {"nodeID":nodeID, "status":status}
-            
         except AttributeError:
-            
             app.logger.error("Storage %s not found" %nodeID)
-            
             result = None
-            
     else:
-        
         result = None 
     
-    result = json.dumps({"result":result})
-            
+    result = json.dumps({"result":result})   
     return result
  
-@app.route("/isNodeRunning",methods=[method])
+@app.route("/isNodeRunning", methods=[method])
 def isNodeRunning():
-
     nodeID = request.json["nodeID"]
     nodeType = nodeID.split(":")[0].split("/")[-1]
-    
     result = json.dumps({"result":(nodeType in ["machine", "router", "storage"])})    
-        
     return result
  
-@app.route("/getAvailableNodeList",methods=[method])
+@app.route("/getAvailableNodeList", methods=[method])
 def getAvailableNodeList():
-
     nodeDescriptor = request.json["nodeDescriptor"]
     numNode = request.json["numNode"]
     nodeType = json.loads(json.dumps(nodeDescriptor)).keys()[0]
 
     nodeIDs = []
-    
     if nodeType == "machine":
-        
         try:
-            
             nodeDescriptor = nodeDescriptor["machine"]
             listType = []
             
             for instance in session.query(MachineType):
- 
                 satisfy = (instance.numcpu >= nodeDescriptor["numcpu"] and
                         instance.numcore >= nodeDescriptor["numcore"] and
                         instance.frequency >= nodeDescriptor["frequency"] and
@@ -317,29 +259,22 @@ def getAvailableNodeList():
                         instance.typefpga == nodeDescriptor["typefpga"])
                 
                 if satisfy:
-                    
                     listType.append(instance.typeID)
                     
             for i in range(len(listType)):
                 for resource in session.query(MachineResource).\
                                 filter_by(typeID=listType[i]).\
                                 filter_by(status="free"):
-
                     nodeIDs.append(resource.resourceID)
-       
         except AttributeError:
-            
             app.logger.error("Machine type not found")
                  
     elif nodeType == "router":
-        
         try:
-
             nodeDescriptor = nodeDescriptor["router"]
             listType = []
             
-            for instance in session.query(RouterType):
-                
+            for instance in session.query(RouterType):    
                 satisfy = (instance.inbw >= nodeDescriptor["inbw"] and
                         instance.outbw >= nodeDescriptor["outbw"] and
                         instance.buffer >= nodeDescriptor["buffer"] and
@@ -348,35 +283,27 @@ def getAvailableNodeList():
                         instance.version == nodeDescriptor["version"])
             
                 if satisfy:
-                    
                     listType.append(instance.typeID)
                     
             for i in range(len(listType)):
                 for resource in session.query(RouterResource).\
                                 filter_by(typeID=listType[i]).\
                                 filter_by(status="free"):
-
                     nodeIDs.append(resource.resourceID)
-       
         except AttributeError:
-            
             app.logger.error("Router type not found")
         
     elif nodeType == "storage":
-
         try:
-
             nodeDescriptor = nodeDescriptor["storage"]
             listType = []
             
-            for instance in session.query(StorageType):
-                
+            for instance in session.query(StorageType):    
                 satisfy = (instance.capacity >= nodeDescriptor["capacity"] and
                         instance.ranbw >= nodeDescriptor["ranbw"] and
                         instance.seqbw >= nodeDescriptor["seqbw"])
             
-                if satisfy:
-                    
+                if satisfy:                    
                     listType.append(instance.typeID)
                     
             for i in range(len(listType)):
@@ -385,27 +312,21 @@ def getAvailableNodeList():
                                 filter_by(status="free"):
 
                     nodeIDs.append(resource.resourceID)
-       
         except AttributeError:
-            
             app.logger.error("Storage type not found")
 
     result = json.dumps({"result":nodeIDs[0:min(numNode,len(nodeIDs))]})
-
     return result
     
-@app.route("/checkStaticNodeInfo",methods=[method])
+@app.route("/checkStaticNodeInfo", methods=[method])
 def checkStaticNodeInfo():
-
     nodeInfo = json.loads(getStaticNodeInfo())["result"]
     nodeDescriptor = request.json["nodeDescriptor"]
     nodeType = json.loads(json.dumps(nodeDescriptor)).keys()[0]
     satisfy = False
 
     if nodeType == "machine":
-        
         nodeDescriptor = nodeDescriptor["machine"]
-
         satisfy = (nodeInfo["numcpu"] >= nodeDescriptor["numcpu"] and
                     nodeInfo["numcore"] >= nodeDescriptor["numcore"] and
                     nodeInfo["frequency"] >= nodeDescriptor["frequency"] and
@@ -418,44 +339,33 @@ def checkStaticNodeInfo():
                     nodeInfo["typefpga"] == nodeDescriptor["typefpga"])
                              
     elif nodeType == "router":
-        
         nodeDescriptor = nodeDescriptor["router"]
-        
         satisfy = (nodeInfo["inbw"] >= nodeDescriptor["inbw"] and
                 nodeInfo["outbw"] >= nodeDescriptor["outbw"] and
                 nodeInfo["buffer"] >= nodeDescriptor["buffer"] and
                 nodeInfo["capacity"] >= nodeDescriptor["capacity"] and
                 nodeInfo["connector"] == nodeDescriptor["connector"] and
                 nodeInfo["version"] == nodeDescriptor["version"])
-                   
     elif nodeType == "storage":
-        
         nodeDescriptor = nodeDescriptor["storage"]
-        
         satisfy = (nodeInfo["capacity"] >= nodeDescriptor["capacity"] and
                 nodeInfo["ranbw"] >= nodeDescriptor["ranbw"] and
                 nodeInfo["seqbw"] >= nodeDescriptor["seqbw"])
             
     result = json.dumps({"result":satisfy})
-
     return result
 
-@app.route("/checkDynamicNodeInfo",methods=[method])
+@app.route("/checkDynamicNodeInfo", methods=[method])
 def checkDynamicNodeInfo():
-
     nodeInfo = json.loads(getDynamicNodeInfo())["result"]
-    
     result = json.dumps({"result":False})
     
     if nodeInfo["status"] == "free":
-        
         result = checkStaticNodeInfo()
-
     return result
         
-@app.route("/createReservation",methods=[method])
+@app.route("/createReservation", methods=[method])
 def createReservation():
-
     reservID = str(uuid.uuid4())
     machineList = request.json["reservDescriptor"]["machine"]
     storageList = request.json["reservDescriptor"]["storage"]
@@ -463,106 +373,78 @@ def createReservation():
 
     try:    
         for nodes in machineList:
-            
             nodeID = json.loads(json.dumps(nodes)).keys()[0]
-            
             session.query(MachineResource).filter_by(resourceID=nodeID).\
                     update({"reservID":reservID, "status":"reserved"})
-            
-        for nodes in storageList:
-            
+
+        for nodes in storageList:            
             nodeID = json.loads(json.dumps(nodes)).keys()[0]
             session.query(StorageResource).filter_by(resourceID=nodeID).\
                     update({"reservID":reservID, "status":"reserved"})   
                     
         for nodes in routerList:
-            
             nodeID = json.loads(json.dumps(nodes)).keys()[0]
             session.query(RouterResource).filter_by(resourceID=nodeID).\
                     update({"reservID":reservID, "status":"reserved"})                
-    
     except AttributeError:
-            
         app.logger.error("Resource not found")
-        
         reservID = "RESOURCE_NOT_FOUND"
                      
     result = json.dumps({"result":reservID})
-
     return result
 
-@app.route("/cancelReservation",methods=[method])
+@app.route("/cancelReservation", methods=[method])
 def cancelReservation():
-    
     session.query(MachineResource).filter_by(reservID = request.json["reservID"]).\
                 update({"status":"free","reservID":""})
-                
     session.query(StorageResource).filter_by(reservID = request.json["reservID"]).\
                 update({"status":"free","reservID":""})
-
     session.query(RouterResource).filter_by(reservID = request.json["reservID"]).\
                 update({"status":"free","reservID":""})    
-
-    result = json.dumps({"result":True})
-
+    result = json.dumps({"result":True})\
     return result
 
 """
 Temporarily working as same as cancelReservation
 """
-@app.route("/releaseReservation",methods=[method])
+@app.route("/releaseReservation", methods=[method])
 def releaseReservation():
-    
     result = cancelReservation()
-
     return result
 
-@app.route("/startVMs",methods=[method])
+@app.route("/startVMs", methods=[method])
 def startVMs():
-    
     nodeIDs = request.json["nodeIDs"]
-    
     hosts = []
     for index in range[len(nodeIDs)]:
         hosts = hosts + ["localhost"]
     
     result = json.dumps({"result":hosts})
-
     return result
 
-@app.route("/shutdownVMs",methods=[method])
+@app.route("/shutdownVMs", methods=[method])
 def shutdownVMs():
-
     result = json.dumps({"result":True})
-
     return result
 
-@app.route("/deployCodeOnRouter",methods=[method])
+@app.route("/deployCodeOnRouter", methods=[method])
 def deployCodeOnRouter():
-
     result = json.dumps({"result":"deployID"})
-
     return result
     
-@app.route("/createVolume",methods=[method])
+@app.route("/createVolume", methods=[method])
 def createVolume():
-
     result = json.dumps({"result":"volID"})
-
     return result
 
-@app.route("/getNodeMonitoringInfo",methods=[method])
+@app.route("/getNodeMonitoringInfo", methods=[method])
 def getNodeMonitoringInfo():
-
     result = json.dumps({"result":"MonitoringInfo"})
-
     return result
 
-@app.route("/getNodePrice",methods=[method])
+@app.route("/getNodePrice", methods=[method])
 def getNodePrice():
-
     result = json.dumps({"result":randrange(10,100)})
-
     return result
 
 """==================================================="""
@@ -570,99 +452,72 @@ def getNodePrice():
 Implement network APIs
 """
 
-@app.route("/getNodeList",methods=[method])
+@app.route("/getNodeList", methods=[method])
 def getNodeList():
-    
     result = json.dumps({"result":None})
-
     return result
 
-@app.route("/getExpectedAvailableBW",methods=[method])
+@app.route("/getExpectedAvailableBW", methods=[method])
 def getExpectedAvailableBW():
-
     result = json.dumps({"result":randrange(0,100)})
-
     return result
 
-@app.route("/getGuaranteedAvailableBW",methods=[method])
+@app.route("/getGuaranteedAvailableBW", methods=[method])
 def getGuaranteedAvailableBW():
-
     result = json.dumps({"result":randrange(0,100)})
-
     return result
 
-@app.route("/getUpperboundAvailableBW",methods=[method])
+@app.route("/getUpperboundAvailableBW", methods=[method])
 def getUpperboundAvailableBW():
-
     result = json.dumps({"result":randrange(0,100)})
-
     return result
 
-@app.route("/getAvailableInternalBW",methods=[method])
+@app.route("/getAvailableInternalBW", methods=[method])
 def getAvailableInternalBW():
-
     result = json.dumps({"result":None})
-
     return result
 
-@app.route("/getExpectedLatency",methods=[method])
+@app.route("/getExpectedLatency", methods=[method])
 def getExpectedLatency():
-
     result = json.dumps({"result":randrange(0,100)})
-
     return result
 
-@app.route("/getGuaranteedLatency",methods=[method])
+@app.route("/getGuaranteedLatency", methods=[method])
 def getGuaranteedLatency():
-
     result = json.dumps({"result":randrange(0,100)})
-
     return result
 
-@app.route("/getLowerboundLatency",methods=[method])
+@app.route("/getLowerboundLatency", methods=[method])
 def getLowerboundLatency():
-
     result = json.dumps({"result":randrange(0,100)})
-
     return result
 
-@app.route("/getInternalLatency",methods=[method])
+@app.route("/getInternalLatency", methods=[method])
 def getInternalLatency():
-
     result = json.dumps({"result":None})
-
     return result
 
-@app.route("/getNetworkPrice",methods=[method])
+@app.route("/getNetworkPrice", methods=[method])
 def getNetworkPrice():
-
     result = json.dumps({"result":randrange(10,100)})
-
     return result
 
 @app.route("/shutdown", methods=[method])
 def shutdown():
-    
     func = request.environ.get("werkzeug.server.shutdown")
-
     if func is None:
-
         raise RuntimeError("Not running with the Werkzeug Server")
 
     func()
-    
     return "IaaS service shutting down...\n"
 
 """==================================================="""                        
 """
 Start the faked api web service
 """
-
 if __name__=="__main__": 
-
     hostname = config.get("IaaS","HOSTNAME")
-    port = int(config.get("IaaS","PORT"))
-    
+    port = int(config.get("IaaS","PORT")) 
     app.run(host=hostname,port=port,debug=False)
     
     

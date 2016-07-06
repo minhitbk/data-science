@@ -1,13 +1,15 @@
 """
 @author: Tran Ngoc Minh
 """
-
 import os
+
 from ConfigParser import ConfigParser
 from logging.handlers import RotatingFileHandler
 from logging import Formatter
 
+
 home = os.path.expanduser("~")
+
 """
 Search for a config file from the environment
 """ 
@@ -40,7 +42,4 @@ logHandler.setFormatter(Formatter(
 Method of http connections
 """
 method = "POST"
-
-
-
 

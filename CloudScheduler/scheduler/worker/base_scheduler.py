@@ -22,18 +22,14 @@ class BaseScheduler(object):
     """
 
     def __init__(self):
-
-        hostname = config.get("IaaS","HOSTNAME")
-        port = int(config.get("IaaS","PORT"))
-        
-        self.conn = Connection(hostname,port)
+        hostname = config.get("IaaS", "HOSTNAME")
+        port = int(config.get("IaaS", "PORT"))
+        self.conn = Connection(hostname, port)
         
     def __del__(self):
-        
         self.conn.close()
         
-    def doScheduling(self,appConfig):
-        
+    def doScheduling(self, appConfig):
         return None
    
     """
@@ -50,39 +46,29 @@ class BaseScheduler(object):
     resulted by the performance model has the same format that is
     described in the Harness API document.
     """
-    def parseAppConfig(self,appConfig):
-        
+    def parseAppConfig(self, appConfig):
         machines = appConfig["machine"]
         storages = appConfig["storage"]
         routers  = appConfig["router"]
-        
         return (machines,storages,routers) 
             
-    def getAvailableNodeList(self,nodeDescriptor,numNode):
-        
+    def getAvailableNodeList(self, nodeDescriptor, numNode):
         params = {"nodeDescriptor":nodeDescriptor,"numNode":numNode}
 
         """
         Catch exception when cannot make connection to the IaaS service"
         """                      
         try:
-            
-            nodes = self.conn.request(method,"/getAvailableNodeList",
-                                       json.dumps(params))
-            
-            result = json.loads(nodes)["result"]
-            
-        except NotConnected:
-            
+            nodes = self.conn.request(method, "/getAvailableNodeList",
+                                       json.dumps(params))            
+            result = json.loads(nodes)["result"]            
+        except NotConnected:            
             logger.error("Cannot make http request to"
-                                 " the IaaS service")
-            
-            result = []
-        
+                                 " the IaaS service")            
+            result = []        
         return result
     
-    def getNodePrice(self,nodeDescriptor,nodeID,duration):
-
+    def getNodePrice(self, nodeDescriptor, nodeID, duration):
         params = {"nodeDescriptor":nodeDescriptor,
                   "nodeID":nodeID,
                   "duration":duration}
@@ -91,18 +77,12 @@ class BaseScheduler(object):
         Catch exception when cannot make connection to the IaaS service"
         """                      
         try:
-
-            price = self.conn.request(method,"/getNodePrice",
-                                    json.dumps(params))
-        
+            price = self.conn.request(method, "/getNodePrice",
+                                      json.dumps(params))
             result = float(json.loads(price)["result"])
-
-        except NotConnected:
-            
+        except NotConnected:            
             logger.error("Cannot make http request to"
-                                 " the IaaS service")
-            
-            result = sys.maxint  
-        
+                                 " the IaaS service")            
+            result = sys.maxint          
         return result        
     

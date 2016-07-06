@@ -21,8 +21,7 @@ numSchedulers = len(schedulingHostnames)
 
 workerConn = []
 
-for index in range(numSchedulers):
-    
+for index in range(numSchedulers):    
     workerConn.append(Connection(schedulingHostnames[index],
                                  schedulingPorts[index]))
 

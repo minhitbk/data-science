@@ -19,7 +19,6 @@ start()
 #
 # Function that stops the daemon/service
 #
-
 stop()
 {
     if [ ! -f $PID_FILE ]; then
@@ -34,7 +33,6 @@ stop()
     rm -f $PID_FILE 
 }
 
-
 case "$1" in
   start)
     start
@@ -47,4 +45,3 @@ case "$1" in
     exit 0
     ;;
 esac
-
