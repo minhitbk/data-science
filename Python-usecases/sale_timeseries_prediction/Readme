@@ -1,0 +1,16 @@
+@author: minhtran.
+
+The 2 scripts need the following Python libraries to run:
+1. pandas.__version__:  '0.18.0'
+2. numpy.__version__: '1.11.0'
+3. sklearn.__version__: '0.19.dev0'
+4. matplotlib.__version__: '1.3.1'
+
+To run analysis:
+  python Analysis.py
+
+To run ETL and machine learning models:
+  python ETL_Modeling.py
+
+Edit the file ETL_Modeling.py for better manual tuning or automatically tuning.
+
