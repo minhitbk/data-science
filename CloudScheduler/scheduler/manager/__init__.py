@@ -1,3 +1,0 @@
-"""
-@author: Tran Ngoc Minh
-"""
